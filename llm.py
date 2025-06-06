@@ -7,19 +7,19 @@ def llm_response(message,nerfreal:BaseReal):
     start = time.perf_counter()
     from openai import OpenAI
     client = OpenAI(
-        # 如果您没有配置环境变量，请在此处用您的API Key进行替换
-        api_key=os.getenv("DASHSCOPE_API_KEY"),
-        # 填写DashScope SDK的base_url
-        base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
+        # DeepSeek API配置
+        api_key="sk-47bc2b0bcb97483aa8a4b6263f3a741e",
+        # DeepSeek API base URL
+        base_url="https://api.deepseek.com",
     )
     end = time.perf_counter()
     logger.info(f"llm Time init: {end-start}s")
     completion = client.chat.completions.create(
-        model="qwen-plus",
-        messages=[{'role': 'system', 'content': 'You are a helpful assistant.'},
+        model="deepseek-chat",
+        messages=[{'role': 'system', 'content': 'You are a helpful assistant. Please respond in Chinese.'},
                   {'role': 'user', 'content': message}],
         stream=True,
-        # 通过以下设置，在流式输出的最后一行展示token使用信息
+        # 设置流式输出
         stream_options={"include_usage": True}
     )
     result=""
@@ -32,17 +32,19 @@ def llm_response(message,nerfreal:BaseReal):
                 logger.info(f"llm Time to first chunk: {end-start}s")
                 first = False
             msg = chunk.choices[0].delta.content
-            lastpos=0
-            #msglist = re.split('[,.!;:，。！?]',msg)
-            for i, char in enumerate(msg):
-                if char in ",.!;:，。！？：；" :
-                    result = result+msg[lastpos:i+1]
-                    lastpos = i+1
-                    if len(result)>10:
-                        logger.info(result)
-                        nerfreal.put_msg_txt(result)
-                        result=""
-            result = result+msg[lastpos:]
+            if msg:  # 添加空值检查
+                lastpos=0
+                #msglist = re.split('[,.!;:，。！?]',msg)
+                for i, char in enumerate(msg):
+                    if char in ",.!;:，。！？：；" :
+                        result = result+msg[lastpos:i+1]
+                        lastpos = i+1
+                        if len(result)>10:
+                            logger.info(result)
+                            nerfreal.put_msg_txt(result)
+                            result=""
+                result = result+msg[lastpos:]
     end = time.perf_counter()
     logger.info(f"llm Time to last chunk: {end-start}s")
-    nerfreal.put_msg_txt(result)    
+    if result:  # 添加空值检查
+        nerfreal.put_msg_txt(result)    
